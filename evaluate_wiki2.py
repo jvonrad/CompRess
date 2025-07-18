@@ -53,6 +53,7 @@ def main() -> None:
     ap.add_argument("--path", required=True, help="HF repo or local checkpoint")
     ap.add_argument("--batch_size", default="auto", help="Batch size or 'auto' to autotune")
     ap.add_argument("--single_gpu", action="store_true", help="Force single‑GPU loading")
+    ap.add_argument("--max_len", type=int, default=None, help="Override model's max_len")
     args = ap.parse_args()
 
     model_id = os.path.basename(args.path.rstrip("/"))
@@ -109,7 +110,7 @@ def main() -> None:
     if tokenizer.bos_token_id is not None:
         enc = torch.cat([torch.tensor([tokenizer.bos_token_id]), enc])
 
-    max_len = cfg["max_len"]
+    max_len = args.max_len or cfg["max_len"]
     total_tokens = enc.size(0)
     nsamples = total_tokens // max_len
     if nsamples < 1:
@@ -133,6 +134,10 @@ def main() -> None:
         batch_size = int(args.batch_size)
     print(f"Fixed‑block eval: blocks={nsamples}, block_size={max_len}, batch_size={batch_size}")
 
+
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats(device=first_device)
+        
     nll, tok_cnt = 0.0, 0
     bs_current = batch_size
     i = 0
@@ -171,6 +176,10 @@ def main() -> None:
     print(f"WikiText‑2 perplexity: {ppl:.2f}")
     elapsed = time.time() - start_time
     print(f"⏱️  Runtime: {elapsed:.2f} s ({elapsed/60:.2f} min)")
+    if torch.cuda.is_available():
+        peak_bytes = torch.cuda.max_memory_allocated(device=first_device)
+        peak_mib   = peak_bytes / 1024**2
+        print(f"GPU Peak Memory: {peak_mib:.1f} MiB")
     
     # --- GPU-Memory freigeben ---
     del model

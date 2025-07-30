@@ -9,7 +9,7 @@
 #SBATCH --time=0-20:00:00             # z.B. 2 Tage
 #SBATCH --output=logs/distill.%j.out
 #SBATCH --error=logs/distill.%j.err
-#SBATCH --mail-user=jonathan.sakouhi@gmail.com
+#SBATCH --mail-user=your-email@gmail.com
 #SBATCH --mail-type=END
 
 
@@ -25,21 +25,21 @@ conda activate thesis
 
 export HF_HOME="$HOME/.cache/huggingface"
 export HF_DATASETS_CACHE="$HOME/.cache/huggingface/datasets"
-CODE_DIR="/home/geiger/gwb082/Jonathans_Thesis/LLMCBench"
-MODEL_DIR="/home/geiger/gwb082/LLMs"
+CODE_DIR="/home/geiger/username/Jonathans_Thesis/LLMCBench"
+MODEL_DIR="/home/geiger/username/LLMs"
 LLAMA_2_7B="$MODEL_DIR/llama-2/llama-2-7b-hf"
 LLAMA_2_13B="$MODEL_DIR/llama-2/llama-2-13b-hf"
 LLAMA_2_70B="$MODEL_DIR/llama-2/llama-2-70b-hf"
 LLAMA_3_1B="$MODEL_DIR/llama-3/Llama-3.2-1B"
-LLAMA_3_8B="/home/geiger/gwb082/LLMs/llama-3/Meta-Llama-3-8B"
-LLAMA_3_8B_MINITRON="/home/geiger/gwb082/LLMs/llama-3/Llama-3.1-Minitron-4B-Depth-Base"
-LLAMA_3_8B_IT="/home/geiger/gwb082/LLMs/llama-3/Meta-Llama-3-8B-Instruct"
-LLAMA_3_8B_FT="/home/geiger/gwb082/LLMs/llama-3/llama_3_1_8b_pile_finetuned_100m"  # Fine-tuned Llama-3-8B
+LLAMA_3_8B="/home/geiger/username/LLMs/llama-3/Meta-Llama-3-8B"
+LLAMA_3_8B_MINITRON="/home/geiger/username/LLMs/llama-3/Llama-3.1-Minitron-4B-Depth-Base"
+LLAMA_3_8B_IT="/home/geiger/username/LLMs/llama-3/Meta-Llama-3-8B-Instruct"
+LLAMA_3_8B_FT="/home/geiger/username/LLMs/llama-3/llama_3_1_8b_pile_finetuned_100m"  # Fine-tuned Llama-3-8B
 LLAMA_3_70B="$MODEL_DIR/llama-3/Llama-3.1-70B"
-QWEN_3_0_6B_BASE="/home/geiger/gwb082/LLMs/Qwen/Qwen3-0.6B-Base"
+QWEN_3_0_6B_BASE="/home/geiger/username/LLMs/Qwen/Qwen3-0.6B-Base"
 QWEN_3_1_7B_BASE="$MODEL_DIR/Qwen/Qwen3-1.7B-Base"
 QWEN_3_4B_BASE="$MODEL_DIR/Qwen/Qwen3-4B-Base"
-QWEN_3_8B_BASE="/home/geiger/gwb082/LLMs/Qwen/Qwen3-8B-Base"
+QWEN_3_8B_BASE="/home/geiger/username/LLMs/Qwen/Qwen3-8B-Base"
 QWEN_3_14B_BASE="$MODEL_DIR/Qwen/Qwen3-14B-Base"
 QWEN_3_32B="$MODEL_DIR/Qwen/Qwen3-32B"
 QWEN_3_0_6B_IT="$MODEL_DIR/Qwen/Qwen3-0.6B"
@@ -53,8 +53,8 @@ DEEPSEEK_MOE_16B_BASE="$MODEL_DIR/deepseek/deepseek-moe-16b-base"
 DEEPSEEK_R1_LLAMA_3_8B="$MODEL_DIR/deepseek/DeepSeek-R1-Distill-Llama-8B"
 DEEPSEEK_R1_LLAMA_3_70B="$MODEL_DIR/deepseek/DeepSeek-R1-Distill-Llama-70B"
 
-CHECKPOINT="/home/geiger/gwb082/Jonathans_Thesis/compressed-models/distilled/ds-r1-llama-3-8b-distill-on-wiki25pct_exponential_alpha0.25/checkpoint-24977"  
-#/home/geiger/gwb082/Jonathans_Thesis/compressed-models/pruned/qwen-3-8b-SparseGPT-0.5
+CHECKPOINT="/home/geiger/username/Jonathans_Thesis/compressed-models/distilled/ds-r1-llama-3-8b-distill-on-wiki25pct_exponential_alpha0.25/checkpoint-24977"  
+#/home/geiger/username/Jonathans_Thesis/compressed-models/pruned/qwen-3-8b-SparseGPT-0.5
 
 ####################### EVALUATION ########################
 # srun --tasks=1  --cpus-per-task=8 --nodes=1        --partition=h100-ferranti  --time=0-03:35     --gres=gpu:1    --mem=80G  --pty bash
@@ -84,7 +84,7 @@ srun python -u $CODE_DIR/evaluate_wiki2.py \
 
 # python $CODE_DIR/quantization/gptq.py \
 #   --model_path $QWEN_3_8B_BASE \
-#   --output_dir "/home/geiger/gwb082/Jonathans_Thesis/compressed-models/quantized/qwen3_8b_gptq4bit" \
+#   --output_dir "/home/geiger/username/Jonathans_Thesis/compressed-models/quantized/qwen3_8b_gptq4bit" \
 #   --bits 4 \
 #   --wandb_project      llama-distillation \
 #   --wandb_entity       jonathan-von-rad \
@@ -100,8 +100,8 @@ export WANDB_MODE=disabled
 #   --prune_method sparsegpt \
 #   --sparsity_ratio 0.5 \
 #   --sparsity_type unstructured \
-#   --save /home/geiger/gwb082/Jonathans_Thesis/compressed-models/pruned/llama-3-8b-sparsegpt-0.5_mixed/logs \
-#   --save_model /home/geiger/gwb082/Jonathans_Thesis/compressed-models/pruned/llama-3-8b-sparsegpt-0.5_mixed \
+#   --save /home/geiger/username/Jonathans_Thesis/compressed-models/pruned/llama-3-8b-sparsegpt-0.5_mixed/logs \
+#   --save_model /home/geiger/username/Jonathans_Thesis/compressed-models/pruned/llama-3-8b-sparsegpt-0.5_mixed \
 #   --wandb_run_name "llama-3-8b-it-sparsegpt-0.5_test_gpu??" \
 #   --calib_dataset mixed_reasoning
 
@@ -198,7 +198,7 @@ export WANDB_MODE=disabled
 
 # # # # # # # Der Rest passt sich automatisch an
 # RUN_NAME="llama-3-8b-distill-on-wiki${WIKI_PCT}pct_exponential_alpha${ALPHA}"
-# OUTPUT_DIR="/home/geiger/gwb082/Jonathans_Thesis/compressed-models/distilled/${RUN_NAME}"
+# OUTPUT_DIR="/home/geiger/username/Jonathans_Thesis/compressed-models/distilled/${RUN_NAME}"
 
 # echo "=== Starte Distillation von LLAMA-3-8B ==="
 # echo "  Teacher:   LLAMA-3-8B"
@@ -211,7 +211,7 @@ export WANDB_MODE=disabled
 #   --nnodes=1 \
 #   --nproc_per_node=1 \
 #   --master_port=29500 \
-#   /home/geiger/gwb082/Jonathans_Thesis/LLMCBench/distillation/distill_llama_student.py \
+#   /home/geiger/username/Jonathans_Thesis/LLMCBench/distillation/distill_llama_student.py \
 #     --teacher_path       "$LLAMA_3_8B" \
 #     --output_dir         "${OUTPUT_DIR}" \
 #     --layer_ratio       "${LAYER_RATIO}" \
@@ -240,8 +240,8 @@ export WANDB_MODE=disabled
 
 # torchrun --nproc_per_node=2 finetune.py \
 #   --base-path        $BASE_PATH \
-#   --model-path       /home/geiger/gwb082/LLMs/llama-3/llama-3.2-1b-hf \
-#   --teacher-model-path /home/geiger/gwb082/LLMs/llama-3/llama-3.1-8b-hf \
+#   --model-path       /home/geiger/username/LLMs/llama-3/llama-3.2-1b-hf \
+#   --teacher-model-path /home/geiger/username/LLMs/llama-3/llama-3.1-8b-hf \
 #   --ckpt-name        llama3-1B \
 #   --teacher-ckpt-name llama3-8B \
 #   --model-type       llama \

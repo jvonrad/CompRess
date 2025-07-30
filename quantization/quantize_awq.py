@@ -1,9 +1,17 @@
 from awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer
 import torch
+import time
+import wandb
 
-model_id = "/home/geiger/gwb082/LLMs/Qwen/Qwen3-0.6B-Base"
-out_dir  = "/home/geiger/gwb082/Jonathans_Thesis/compressed-models/quantized/qwen3-0-6b-awq4"
+wandb.init(
+    project="llama-distillation",
+    entity="jonathan-von-rad",
+    name="quantize_qwen3_awq"
+)
+model_id = "/home/geiger/gwb082/LLMs/Qwen/Qwen3-8B-Base"
+out_dir  = "/home/geiger/gwb082/Jonathans_Thesis/compressed-models/quantized/qwen-3-8b-awq4_test"
+device = torch.cuda.current_device()
 
 # load model in full precision first
 model = AutoAWQForCausalLM.from_pretrained(
@@ -22,12 +30,24 @@ quant_cfg = {
     # "fuse_qkv": True,     # add these if you need kernel fusion
     # "fuse_mlp": True,
 }
+start_time = time.perf_counter()
+torch.cuda.reset_peak_memory_stats(device)
 
 # run calibration + quantisation
 model.quantize(
     tokenizer=tokenizer,
     quant_config=quant_cfg        # ← pass the dict **once**
 )
+
+quantization_time = time.perf_counter() - start_time
+max_mem_bytes = torch.cuda.max_memory_allocated(device)
+print(f"quantization took {quantization_time:.2f} seconds")
+print(f"max memory usage: {max_mem_bytes / 1024**3:.2f} GB")
+wandb.log({
+    "quantization_time_sec": quantization_time,
+    "gpu_max_mem_GB": max_mem_bytes / 1024**3,
+})
+wandb.finish()
 
 # save the 4-bit model
 model.save_quantized(out_dir)

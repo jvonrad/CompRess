@@ -1,0 +1,8 @@
+.aider*
+node_modules
+logs/*
+wandb/*
+wandb
+quantization/__pycache__
+Track_6/__pycache__
+__pycache__

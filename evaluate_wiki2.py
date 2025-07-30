@@ -21,6 +21,15 @@ from transformers import (
     AutoModelForCausalLM,
     Llama4ForConditionalGeneration,
 )
+import os
+import numpy as np
+import onnxruntime as ort
+from transformers import AutoTokenizer
+from optimum.onnxruntime import ORTModelForCausalLM
+import wandb
+
+# 1) tell ORT to use the 2:4 sparse kernels
+os.environ["ORT_SPARSE_MODE"] = "block_sparse_2_4"
 
 from model_configs import get_model_cfg
 
@@ -54,7 +63,23 @@ def main() -> None:
     ap.add_argument("--batch_size", default="auto", help="Batch size or 'auto' to autotune")
     ap.add_argument("--single_gpu", action="store_true", help="Force single‑GPU loading")
     ap.add_argument("--max_len", type=int, default=None, help="Override model's max_len")
+    ap.add_argument("--onnx", action="store_true",
+                help="Treat --path as an *ONNX* folder and run with ONNX Runtime")
+
     args = ap.parse_args()
+    
+    # wandb.init(
+    #     project="llama-distillation",
+    #     entity="jonathan-von-rad",
+    #     name=f"wiki2_eval_{os.path.basename(args.path)}",
+    #     config={
+    #         "path": args.path,
+    #         "batch_size": args.batch_size,
+    #         "single_gpu": args.single_gpu,
+    #         "max_len": args.max_len,
+    #         "onnx": args.onnx,
+    #     },
+    # )
 
     model_id = os.path.basename(args.path.rstrip("/"))
     cfg = get_model_cfg(model_id)
@@ -67,6 +92,8 @@ def main() -> None:
     if tokenizer.pad_token_id is None:
         tokenizer.add_special_tokens({"pad_token": tokenizer.eos_token})
     pad_id = tokenizer.pad_token_id
+    
+
 
     # ---------- Model ----------
     quant_cfg  = cfg.get("bnb_config")
@@ -84,25 +111,35 @@ def main() -> None:
         device_map, to_device = "auto", None
         max_mem = {i: "80GB" for i in range(torch.cuda.device_count())}
 
-    model = model_cls.from_pretrained(
-        args.path,
-        trust_remote_code=True,
-        device_map=device_map,
-        max_memory=max_mem,
-        torch_dtype=torch_dtype
-    )
-    if to_device:
+    if args.onnx:
+        model = ORTModelForCausalLM.from_pretrained(
+            args.path,            # <- ONNX dir
+            file_name="model.onnx",
+            provider="CUDAExecutionProvider"
+        )
+    else:
+        model_cls = Llama4ForConditionalGeneration if is_llama4 else AutoModelForCausalLM
+        model = model_cls.from_pretrained(
+            args.path,
+            trust_remote_code=True,
+            device_map=device_map,
+            max_memory=max_mem,
+            torch_dtype=torch_dtype,
+        )
+    if to_device and not args.onnx:
         model = model.to(to_device)
-    model.eval()
+        model.eval()
+    
 
-    if tokenizer.pad_token_id is None:
+    if tokenizer.pad_token_id is None and not args.onnx:
         model.resize_token_embeddings(len(tokenizer))
 
-    print(f"Loaded model: {model.config._name_or_path}")
+    print(f"Loaded model: {model.config._name_or_path or args.path}")
     print("Model cfg override:")
     print(json.dumps(cfg, indent=2, default=lambda o: repr(o)))
 
-    first_device = to_device if args.single_gpu else next(iter(model.hf_device_map.values()))
+    #first_device = to_device if args.single_gpu else next(iter(model.hf_device_map.values()))
+    first_device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # ---------- Data ----------
     ds = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
@@ -145,16 +182,32 @@ def main() -> None:
         j = min(i + bs_current, nsamples)
         inp = ids[i:j].to(first_device)
         tgt = inp.clone(); tgt[:, 0] = -100
-        attn_mask = torch.ones_like(inp).to(first_device) if is_llama4 else None
+        attn_mask = torch.ones_like(inp).to(first_device) if args.onnx else None
 
         try:
             with torch.no_grad():
-                loss = model(
-                    inp,
-                    attention_mask=attn_mask,
-                    labels=tgt,
-                    use_cache=False
-                ).loss.item()
+
+                if args.onnx:
+                    # ONNXRuntime path
+                    ort_out = model(input_ids=inp, attention_mask=attn_mask, use_cache=False)
+                    logits  = ort_out.logits                    # (bs, seq, vocab)
+                    shifted_logits = logits[:, :-1, :].contiguous()
+                    shifted_labels = tgt[:, 1:].contiguous()
+
+                    loss = torch.nn.functional.cross_entropy(
+                        shifted_logits.view(-1, shifted_logits.size(-1)),
+                        shifted_labels.view(-1),
+                        ignore_index=-100,
+                        reduction="mean",
+                    ).item()
+                else:
+                    # PyTorch path
+                    loss = model(
+                        inp,
+                        attention_mask=attn_mask,
+                        labels=tgt,
+                        use_cache=False,
+                    ).loss.item()
 
             tokens = tgt.ne(-100).sum().item()
             nll    += loss * tokens
@@ -185,6 +238,8 @@ def main() -> None:
     del model
     torch.cuda.empty_cache()
     import gc; gc.collect()
+    
+    # wandb.finish()
 
 
 if __name__ == "__main__":

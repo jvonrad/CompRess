@@ -248,8 +248,22 @@ def run_probs(frame, tag='Test', preset='qa', model=None, tokenizer=None, device
 def main(args):
 
     # load your model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(args.path,use_fast=False,add_bos_token=False,trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(args.path,device_map="auto",trust_remote_code=True)
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(args.path,use_fast=False,add_bos_token=False,trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        print(f"Tokenizer loaded successfully: {type(tokenizer)}")
+            
+    except Exception as e:
+        warnings.warn(f"Tokenizer loading failed: {e}. Using default llama3-8b tokenizer from hf.")
+        tokenizer = AutoTokenizer.from_pretrained(
+            "meta-llama/Meta-Llama-3-8B",  # Base model name
+            use_fast=False,
+            trust_remote_code=True
+        )
+    model = AutoModelForCausalLM.from_pretrained(args.path,device_map="auto",trust_remote_code=True, torch_dtype=torch.bfloat16)
+    
+    print(f"Model {args.path} loaded successfully!")
 
     questions = utilities.load_questions(filename=args.input_path)
     run_probs(questions, preset=args.preset, model=model, tokenizer=tokenizer, device=args.device)

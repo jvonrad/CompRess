@@ -14,3 +14,6 @@
 	path = quantization/llm-awq
 	url = git@github.com:jonny-vr/llm-awq.git
 	branch = add-qwen3-support
+[submodule "TrustLLM"]
+	path = TrustLLM
+	url = https://github.com/HowieHwong/TrustLLM.git

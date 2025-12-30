@@ -20,7 +20,7 @@
 ## II. Evaluate Reliablity
 
 
-### Generation
+### 1. Generation
 > cd TrustLLM
 
 Edit generate_all.py --> Fill MODEL_PATH with "/path/to/target/model"
@@ -43,7 +43,7 @@ SSH to same Compute Node (any point where 0.0.0.0:8000 can be accessed) :
 
 ==> All generated responses will be stored in /UniCOMP/TrustLLM/generation_results/{current_model}"
 
-### Evaluation
+### 2. Evaluation
 
 > cd TrustLLM
 

@@ -50,11 +50,12 @@ SSH to same Compute Node (any point where 0.0.0.0:8000 can be accessed) :
 Because the model responses will be evaluated by GPT-4 turbo we have to change the openai_key and access_point:
 Edit config.py --> openai_key="Your_Token" and openai_api_base="https://api.openai.com/v1"
 
-Edit evaluate.py --> current_model="model_name"
 
-> conda activate trustLLM
-> python evaluate.py
+> conda activate trustLLM 
+> python evaluate.py --model_name "path/to/model"
+
 or
+
 > sbatch UniCOMP/run.sh ## (only comment out python -u $CODE_DIR/TrustLLM/evaluate.py and conda activate trustllm)
 
 ==> Results will be printed 
